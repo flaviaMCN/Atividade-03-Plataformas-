@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.SceneManagement;
 
 public class PuzzleManager : MonoBehaviour
 {
@@ -12,8 +13,9 @@ public class PuzzleManager : MonoBehaviour
     private PuzzlePiece selectedPiece = null;
     private Stack<ICommand> undoStack = new Stack<ICommand>();
     private List<ICommand> replayList = new List<ICommand>();
-
     private PuzzlePiece[] puzzlePieces;
+
+    private bool cancelReplay = false;
 
     void Start()
     {
@@ -21,56 +23,94 @@ public class PuzzleManager : MonoBehaviour
         ShufflePuzzle();
     }
 
-    void GeneratePuzzle() // Posiciona as imagens com os índices corretos
+    void GeneratePuzzle()
     {
+        foreach (Transform child in grid)
+        {
+            Destroy(child.gameObject);
+        }
+        
         puzzlePieces = new PuzzlePiece[16];
         for (int i = 0; i < 16; i++)
         {
             GameObject obj = Instantiate(piecePrefab, grid);
             PuzzlePiece piece = obj.GetComponent<PuzzlePiece>();
-            
+
             piece.correctIndex = i;
             piece.currentIndex = i;
             piece.SetImage(pieces[i]);
-            
+
             puzzlePieces[i] = piece;
         }
     }
-    
-    private void ShufflePuzzle() // Troca aleatória
+
+    private void ShufflePuzzle()
     {
-        for (int i = 0; i < puzzlePieces.Length; i++)
+        List<Transform> children = new List<Transform>();
+
+        // Coleta os filhos atuais do grid
+        foreach (Transform child in grid)
+            children.Add(child);
+
+        // Embaralha a lista
+        for (int i = 0; i < children.Count; i++)
         {
-            int ranIndex = Random.Range(0, puzzlePieces.Length);
-            if (i != ranIndex)
-            {
-                PuzzlePiece a = puzzlePieces[i];
-                PuzzlePiece b = puzzlePieces[ranIndex];
-
-                int temp = a.currentIndex;
-                a.currentIndex = b.currentIndex;
-                b.currentIndex = temp;
-
-                int indexA = a.transform.GetSiblingIndex();
-                int indexB = b.transform.GetSiblingIndex();
-
-                a.transform.SetSiblingIndex(indexB);
-                b.transform.SetSiblingIndex(indexA);
-            }
+            Transform temp = children[i];
+            int randomIndex = Random.Range(i, children.Count);
+            children[i] = children[randomIndex];
+            children[randomIndex] = temp;
         }
+
+        // Reordena visualmente os filhos no grid
+        for (int i = 0; i < children.Count; i++)
+        {
+            children[i].SetSiblingIndex(i);
+
+            // Atualiza o currentIndex das peças
+            PuzzlePiece piece = children[i].GetComponent<PuzzlePiece>();
+            piece.currentIndex = i;
+        }
+
+        undoStack.Clear();
+        replayList.Clear();
     }
 
+    public void PieceClicked(PuzzlePiece piece)
+    {
+        if (selectedPiece == null)
+        {
+            selectedPiece = piece;
+            return;
+        }
+
+        if (selectedPiece == piece)
+        {
+            selectedPiece = null;
+            return;
+        }
+
+        ICommand cmd = new SwapCommand(selectedPiece, piece);
+        cmd.Execute();
+        undoStack.Push(cmd);
+        replayList.Add(cmd);
+
+        selectedPiece = null;
+
+        CheckWin();
+    }
 
     public void Undo()
     {
-        if (selectedPiece == null && undoStack.Count > 0)
+        if (selectedPiece != null) return;
+
+        if (undoStack.Count > 0)
         {
             ICommand cmd = undoStack.Pop();
             cmd.Undo();
         }
     }
 
-    void CheckWin() // Verifica se as peças estão corretas
+    void CheckWin()
     {
         foreach (var piece in puzzlePieces)
         {
@@ -84,68 +124,45 @@ public class PuzzleManager : MonoBehaviour
 
     public void ShowWinUI()
     {
-
+        // Aqui você pode ativar um painel de vitória na interface
+        Debug.Log("Mostrar UI de vitória");
     }
 
     public void RestartGame()
     {
-        UnityEngine.SceneManagement.SceneManager.LoadScene("Puzzle");
+        SceneManager.LoadScene("Puzzle");
     }
 
-    public void StartGame()
+    public void StartReplay()
     {
-        StartCoroutine(PlayRepaly());
+        StartCoroutine(PlayReplay());
     }
 
-    private bool cancelRepaly = false;
-
-    public void CancelRepaly()
+    public void CancelReplay()
     {
-        cancelRepaly = true;
+        cancelReplay = true;
     }
 
-    IEnumerator PlayRepaly()
+    IEnumerator PlayReplay()
     {
-        cancelRepaly = false;
+        cancelReplay = false;
+
         foreach (var cmd in replayList)
         {
-            if (cancelRepaly)
-                break;
+            if (cancelReplay) break;
 
             cmd.Execute();
-            yield return new WaitForSeconds(0.1f);
+            yield return new WaitForSeconds(1f); // Espera 1 segundo entre comandos
         }
 
-        if (cancelRepaly)
+        if (cancelReplay)
         {
-            for (int i = replayList.IndexOf(replayList.Find(c => !cancelRepaly)); i < replayList.Count; i++)
-            {
-                replayList[i].Execute();
-            }
+            // Executa o restante das jogadas instantaneamente
+            foreach (var cmd in replayList)
+                cmd.Execute();
         }
 
         ShowWinUI();
-    }
-
-    public void PieceCliked(PuzzlePiece piece)
-    {
-        if (selectedPiece == null)
-        {
-            selectedPiece = piece;
-        }
-        else
-        {
-            if (selectedPiece != piece)
-            {
-                ICommand cmd = new SwapCommand(selectedPiece, piece);
-                cmd.Execute();
-                undoStack.Push(cmd);
-                replayList.Add(cmd);
-                CheckWin();
-            }
-
-            selectedPiece = null;
-        }
     }
 }
 

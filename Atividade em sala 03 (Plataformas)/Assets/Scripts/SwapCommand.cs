@@ -12,12 +12,12 @@ public class SwapCommand : ICommand
 
     public void Execute()
     {
-        Swap(); // Troca as posições
+        Swap();
     }
 
-    public void Undo() 
+    public void Undo()
     {
-        Swap(); // Desfaz a troca
+        Swap(); // Trocar de novo desfaz a troca
     }
 
     private void Swap()
@@ -25,11 +25,11 @@ public class SwapCommand : ICommand
         int temp = a.currentIndex;
         a.currentIndex = b.currentIndex;
         b.currentIndex = temp;
-        
-        // Troca as posições no grid
+
+        // Corrigir ordem visual no GridLayoutGroup
         int indexA = a.transform.GetSiblingIndex();
         int indexB = b.transform.GetSiblingIndex();
-        
+
         a.transform.SetSiblingIndex(indexB);
         b.transform.SetSiblingIndex(indexA);
     }

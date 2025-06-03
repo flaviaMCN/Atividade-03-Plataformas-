@@ -4,11 +4,11 @@ using UnityEngine.UI;
 public class PuzzlePiece : MonoBehaviour
 {
     public int correctIndex; // Posição final
-    public int currentIndex; //Posição atual
-    
+    public int currentIndex; // Posição atual
+
     private Button button;
     private PuzzleManager manager;
-   
+
     void Start()
     {
         button = GetComponent<Button>();
@@ -18,12 +18,12 @@ public class PuzzlePiece : MonoBehaviour
 
     private void OnPieceClicked()
     {
-        manager.PieceCliked(this);
+        manager.PieceClicked(this);
     }
 
     public void SetImage(Sprite sprite)
     {
-        GetComponent<Image>().sprite = sprite; // Troca a imadem da peça
+        GetComponent<Image>().sprite = sprite; // Troca a imagem da peça
     }
 }
 
