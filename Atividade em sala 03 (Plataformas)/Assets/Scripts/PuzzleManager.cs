@@ -19,6 +19,8 @@ public class PuzzleManager : MonoBehaviour
 
     void Start()
     {
+        
+        
         GeneratePuzzle();
         ShufflePuzzle();
     }
@@ -161,8 +163,6 @@ public class PuzzleManager : MonoBehaviour
             foreach (var cmd in replayList)
                 cmd.Execute();
         }
-
-        ShowWinUI();
     }
 }
 
